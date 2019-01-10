@@ -1,0 +1,9 @@
+<component name="libraryTable">
+  <library name="SocketMessage.SocketMessage">
+    <CLASSES>
+      <root url="jar://$PROJECT_DIR$/SocketMessage/SocketMessage.jar!/" />
+    </CLASSES>
+    <JAVADOC />
+    <SOURCES />
+  </library>
+</component>

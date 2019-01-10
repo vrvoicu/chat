@@ -66,7 +66,7 @@ public class ChatActivity extends AppCompatActivity {
         public void onClick(View v) {
             String message = messageEditText.getText().toString();
 
-            networkService.sendMessage(message);
+            networkService.sendMessage("test", message);
         }
 
     };

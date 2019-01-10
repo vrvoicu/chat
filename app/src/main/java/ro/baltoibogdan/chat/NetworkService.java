@@ -9,6 +9,9 @@ import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.net.Socket;
+import java.util.Map;
+
+import socketmessage.SocketMessage;
 
 public class NetworkService extends Service {
 
@@ -68,7 +71,7 @@ public class NetworkService extends Service {
 
         try {
 
-            socket = new Socket("localhost", 4321);
+            socket = new Socket("192.0.0.122", 4321);
             oos = new ObjectOutputStream(socket.getOutputStream());
             ois = new ObjectInputStream(socket.getInputStream());
 
@@ -78,6 +81,28 @@ public class NetworkService extends Service {
 
         } catch (IOException e) {
             e.printStackTrace();
+
+            try {
+                if(ois != null)
+                    ois.close();
+            } catch (IOException e1) {
+                e1.printStackTrace();
+            }
+
+            try {
+                if(oos != null)
+                    oos.close();
+            } catch (IOException e1) {
+                e1.printStackTrace();
+            }
+
+            try {
+                socket.close();
+            } catch (IOException e1) {
+                e1.printStackTrace();
+            }
+
+
         }
     }
 
@@ -120,10 +145,29 @@ public class NetworkService extends Service {
 
     }
 
-    public void sendMessage(String message){
+    public void sendMessage(String to, String message){
 
-//        connect();
+        connect();
 
-        System.out.println("message");
+        SocketMessage socketMessage = new SocketMessage();
+        socketMessage.setRequestType(SocketMessage.REQUEST_TYPE_SEND_CHAT_MESSAGE);
+        Map<String, String> map = socketMessage.getMap();
+
+        map.put("to", to);
+        map.put("message", message);
+
+        sendSocketMessage(socketMessage);
+
+    }
+
+    private void sendSocketMessage(SocketMessage socketMessage){
+
+        try {
+            oos.writeObject(socketMessage);
+        } catch (IOException e) {
+            e.printStackTrace();
+            isConnected = false;
+        }
+
     }
 }
