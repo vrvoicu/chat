@@ -29,10 +29,42 @@ public class NetworkService extends Service {
 
     }
 
-    @Override
-    public int onStartCommand(Intent intent, int flags, int startId) {
+    private boolean run = true;
 
-        System.out.println("onStartCommand");
+    private Runnable communicationThread;
+
+    private void startCommunicationThread(){
+        communicationThread = new Runnable(){
+
+            @Override
+            public void run() {
+
+                while(run){
+
+                    try {
+
+                        Object obj = ois.readObject();
+
+                    } catch (ClassNotFoundException e) {
+                        e.printStackTrace();
+                    } catch (IOException e) {
+                        e.printStackTrace();
+
+                        isConnected = false;
+                    }
+                }
+
+            }
+
+        };
+    }
+
+    private boolean isConnected = false;
+
+    private void connect(){
+
+        if(isConnected)
+            return;
 
         try {
 
@@ -40,13 +72,25 @@ public class NetworkService extends Service {
             oos = new ObjectOutputStream(socket.getOutputStream());
             ois = new ObjectInputStream(socket.getInputStream());
 
+            isConnected = true;
+
+            startCommunicationThread();
+
         } catch (IOException e) {
             e.printStackTrace();
         }
+    }
+
+    @Override
+    public int onStartCommand(Intent intent, int flags, int startId) {
+
+        System.out.println("onStartCommand");
 
 //        return super.onStartCommand(intent, flags, startId);
         return START_STICKY;
     }
+
+
 
     @Override
     public IBinder onBind(Intent intent) {
@@ -61,5 +105,25 @@ public class NetworkService extends Service {
         Service getService(){
             return NetworkService.this;
         }
+    }
+
+    public void login(String email, String password){
+
+//        connect();
+
+//        try {
+            System.out.println("login");
+//            oos.writeObject(email);
+       /* } catch (IOException e) {
+            e.printStackTrace();
+        }*/
+
+    }
+
+    public void sendMessage(String message){
+
+//        connect();
+
+        System.out.println("message");
     }
 }

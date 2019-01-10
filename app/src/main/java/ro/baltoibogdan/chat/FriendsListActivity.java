@@ -1,59 +1,41 @@
 package ro.baltoibogdan.chat;
 
-import android.content.ComponentName;
-import android.content.ServiceConnection;
-import android.os.Bundle;
-import android.os.IBinder;
-import android.support.design.widget.FloatingActionButton;
-import android.support.design.widget.Snackbar;
+import android.content.Intent;
 import android.support.v7.app.AppCompatActivity;
-import android.support.v7.widget.Toolbar;
+import android.os.Bundle;
 import android.view.View;
+import android.widget.AdapterView;
+import android.widget.ArrayAdapter;
+import android.widget.ListView;
 
 public class FriendsListActivity extends AppCompatActivity {
 
-    NetworkService networkService;
-    boolean networkServiceBound = false;
+    private ArrayAdapter<String> arrayAdapter;
+    private String[] stringArray = new String[]{"ASD", "BSD", "CSD"};
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_friends_list2);
-        Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
-        setSupportActionBar(toolbar);
+        setContentView(R.layout.activity_friends_list);
 
-        FloatingActionButton fab = (FloatingActionButton) findViewById(R.id.fab);
-        fab.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                Snackbar.make(view, "Replace with your own action", Snackbar.LENGTH_LONG)
-                        .setAction("Action", null).show();
-            }
-        });
+        arrayAdapter = new ArrayAdapter<String>(this, android.R.layout.simple_list_item_1, stringArray);
+
+        ListView listView = (ListView) findViewById(R.id.friends_list);
+        listView.setAdapter(arrayAdapter);
+
+        listView.setOnItemClickListener(adaptorOnItemClickListener);
     }
 
-    @Override
-    protected void onStart() {
-        super.onStart();
-    }
+    private AdapterView.OnItemClickListener adaptorOnItemClickListener = new AdapterView.OnItemClickListener() {
 
-    private ServiceConnection serviceConnection = new ServiceConnection() {
+        public void onItemClick(AdapterView parent, View v, int position, long id) {
+            // Do something in response to the click
 
-        @Override
-        public void onServiceConnected(ComponentName name, IBinder service) {
-
-            NetworkService.LocalBinder binder = (NetworkService.LocalBinder) service;
-            networkService = (NetworkService) binder.getService();
-            networkServiceBound = true;
-
-        }
-
-        @Override
-        public void onServiceDisconnected(ComponentName name) {
-
-            networkServiceBound = false;
-
+            Intent intent = new Intent(FriendsListActivity.this, ChatActivity.class);
+            intent.putExtra("email", stringArray[position]);
+            startActivity(intent);
         }
 
     };
+
 }
