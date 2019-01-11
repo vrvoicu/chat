@@ -19,16 +19,25 @@ import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ListView;
 
-public class ChatActivity extends AppCompatActivity {
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+
+import ro.baltoibogdan.chat.observer.NetworkServiceObserver;
+import socketmessage.SocketMessage;
+
+public class ChatActivity extends AppCompatActivity implements NetworkServiceObserver {
 
     NetworkService networkService;
     boolean networkServiceBound = false;
 
     private ArrayAdapter<String> arrayAdapter;
-    private String[] stringArray = new String[]{"hello", "suck it", "you suck it"};
+    private List<String> stringArray = new ArrayList<String>();
 
     private EditText messageEditText;
     private Button sendButton;
+
+    private String to;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -64,19 +73,36 @@ public class ChatActivity extends AppCompatActivity {
 
         @Override
         public void onClick(View v) {
-            String message = messageEditText.getText().toString();
 
-            networkService.sendMessage("test", message);
+            String message = messageEditText.getText().toString();
+            sendMessage(id, message);
+
         }
 
     };
+
+    private String id;
 
     @Override
     protected void onStart() {
         super.onStart();
 
+        Intent startIntent = getIntent();
+        id = startIntent.getStringExtra("email");
+
         Intent intent = new Intent(this, NetworkService.class);
         bindService(intent, serviceConnection, Context.BIND_AUTO_CREATE);
+
+    }
+
+    @Override
+    protected void onPause() {
+        super.onPause();
+
+        networkService.removeObserver(ChatActivity.this);
+
+        unbindService(serviceConnection);
+
     }
 
     private ServiceConnection serviceConnection = new ServiceConnection() {
@@ -93,9 +119,38 @@ public class ChatActivity extends AppCompatActivity {
         @Override
         public void onServiceDisconnected(ComponentName name) {
 
+            networkService.removeObserver(ChatActivity.this);
+
             networkServiceBound = false;
 
         }
 
     };
+
+    public void sendMessage(String to, String message){
+
+        SocketMessage socketMessage = new SocketMessage();
+        socketMessage.setRequestType(SocketMessage.REQUEST_TYPE_SEND_CHAT_MESSAGE);
+        Map<String, String> map = socketMessage.getMap();
+
+        map.put("to", id);
+        map.put("message", message);
+
+        networkService.sendSocketMessage(socketMessage);
+
+    }
+
+    @Override
+    public void onSocketMessage(SocketMessage socketMessage) {
+
+        if(socketMessage.getResponseType() != SocketMessage.RESPONSE_TYPE_SEND_CHAT_MESSAGE)
+            return;
+
+        String message = socketMessage.getMap().get("message");
+
+        System.out.println(message);
+
+//        stringArray.add()
+
+    }
 }

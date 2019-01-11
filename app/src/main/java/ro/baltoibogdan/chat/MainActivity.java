@@ -29,8 +29,6 @@ public class MainActivity extends AppCompatActivity {
         StrictMode.ThreadPolicy policy = new StrictMode.ThreadPolicy.Builder().permitAll().build();
         StrictMode.setThreadPolicy(policy);
 
-        System.out.println("asd");
-
         if(ContextCompat.checkSelfPermission(this, Manifest.permission.INTERNET)!= PackageManager.PERMISSION_GRANTED) {
 
             ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.INTERNET}, REQUEST_INTERNET_PERMISSION_CODE);
@@ -39,7 +37,7 @@ public class MainActivity extends AppCompatActivity {
         else {
 
 //            Intent intent = new Intent(this, LoginActivity.class);
-            Intent intent = new Intent(this, FriendsListActivity.class);
+            Intent intent = new Intent(this, LoginActivity.class);
             startActivity(intent);
 
         }

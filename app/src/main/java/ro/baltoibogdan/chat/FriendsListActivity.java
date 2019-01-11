@@ -1,6 +1,10 @@
 package ro.baltoibogdan.chat;
 
+import android.content.ComponentName;
+import android.content.Context;
 import android.content.Intent;
+import android.content.ServiceConnection;
+import android.os.IBinder;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.view.View;
@@ -8,10 +12,19 @@ import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.ListView;
 
-public class FriendsListActivity extends AppCompatActivity {
+import java.util.ArrayList;
+import java.util.List;
+
+import ro.baltoibogdan.chat.observer.NetworkServiceObserver;
+import socketmessage.SocketMessage;
+
+public class FriendsListActivity extends AppCompatActivity implements NetworkServiceObserver {
+
+    private NetworkService networkService;
+    private boolean networkServiceBound = false;
 
     private ArrayAdapter<String> arrayAdapter;
-    private String[] stringArray = new String[]{"ASD", "BSD", "CSD"};
+    private List<String> stringArray = new ArrayList<String>();
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -31,11 +44,86 @@ public class FriendsListActivity extends AppCompatActivity {
         public void onItemClick(AdapterView parent, View v, int position, long id) {
             // Do something in response to the click
 
-            Intent intent = new Intent(FriendsListActivity.this, ChatActivity.class);
-            intent.putExtra("email", stringArray[position]);
-            startActivity(intent);
+        Intent intent = new Intent(FriendsListActivity.this, ChatActivity.class);
+        intent.putExtra("email", stringArray.get(position));
+        startActivity(intent);
+
         }
 
     };
 
+
+    @Override
+    protected void onStart() {
+        super.onStart();
+
+        Intent intent = new Intent(this, NetworkService.class);
+        bindService(intent, serviceConnection, Context.BIND_AUTO_CREATE);
+
+    }
+
+    @Override
+    protected void onPause() {
+        super.onPause();
+
+        networkService.removeObserver(FriendsListActivity.this);
+
+        unbindService(serviceConnection);
+
+    }
+
+    private ServiceConnection serviceConnection = new ServiceConnection() {
+
+        @Override
+        public void onServiceConnected(ComponentName name, IBinder service) {
+
+            NetworkService.LocalBinder binder = (NetworkService.LocalBinder) service;
+            networkService = (NetworkService) binder.getService();
+            networkServiceBound = true;
+
+            networkService.addObserver(FriendsListActivity.this);
+
+            requestFriendsList();
+        }
+
+        @Override
+        public void onServiceDisconnected(ComponentName name) {
+
+            networkService.removeObserver(FriendsListActivity.this);
+
+            networkServiceBound = false;
+
+        }
+
+    };
+
+    private void requestFriendsList(){
+
+        SocketMessage socketMessage = new SocketMessage();
+        socketMessage.setRequestType(SocketMessage.REQUEST_TYPE_FRIENDS_LIST);
+
+        networkService.sendSocketMessage(socketMessage);
+
+    }
+
+    @Override
+    public void onSocketMessage(SocketMessage socketMessage) {
+
+        if(socketMessage.getResponseType() != SocketMessage.RESPONSE_TYPE_FRIENDS_LIST)
+            return;
+
+        String list = socketMessage.getMap().get("list");
+
+        String friends [] = list.split(";");
+
+        for(String friend: friends)
+            stringArray.add(friend);
+
+        runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                arrayAdapter.notifyDataSetChanged();
+            }
+        });
+    }
 }

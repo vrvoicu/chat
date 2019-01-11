@@ -9,11 +9,15 @@ import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.net.Socket;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 
+import ro.baltoibogdan.chat.observer.NetworkServiceObserver;
+import ro.baltoibogdan.chat.observer.NetworkServiceSubject;
 import socketmessage.SocketMessage;
 
-public class NetworkService extends Service {
+public class NetworkService extends Service implements NetworkServiceSubject {
 
     private LocalBinder binder = new LocalBinder();
 
@@ -27,8 +31,6 @@ public class NetworkService extends Service {
     @Override
     public void onCreate() {
         super.onCreate();
-
-        System.out.println("onCreate");
 
     }
 
@@ -48,30 +50,47 @@ public class NetworkService extends Service {
 
                         Object obj = ois.readObject();
 
+                        SocketMessage socketMessage = (SocketMessage) obj;
+
+                        notifyObservers(socketMessage);
+
                     } catch (ClassNotFoundException e) {
+
+                        System.out.println("aaa");
+
                         e.printStackTrace();
                     } catch (IOException e) {
                         e.printStackTrace();
 
+                        System.out.println("bbb");
+
                         isConnected = false;
+                        run = false;
                     }
                 }
 
             }
 
         };
+
+        communicationThread = new Thread(communicationThread);
+        ((Thread)communicationThread).start();
     }
 
     private boolean isConnected = false;
 
-    private void connect(){
+    private synchronized void connect(){
 
         if(isConnected)
             return;
 
+        System.out.println(this);
+
         try {
 
-            socket = new Socket("192.0.0.122", 4321);
+            System.out.println("wtf");
+
+            socket = new Socket("192.0.0.122", 4322);
             oos = new ObjectOutputStream(socket.getOutputStream());
             ois = new ObjectInputStream(socket.getInputStream());
 
@@ -132,35 +151,9 @@ public class NetworkService extends Service {
         }
     }
 
-    public void login(String email, String password){
-
-//        connect();
-
-//        try {
-            System.out.println("login");
-//            oos.writeObject(email);
-       /* } catch (IOException e) {
-            e.printStackTrace();
-        }*/
-
-    }
-
-    public void sendMessage(String to, String message){
+    public void sendSocketMessage(SocketMessage socketMessage){
 
         connect();
-
-        SocketMessage socketMessage = new SocketMessage();
-        socketMessage.setRequestType(SocketMessage.REQUEST_TYPE_SEND_CHAT_MESSAGE);
-        Map<String, String> map = socketMessage.getMap();
-
-        map.put("to", to);
-        map.put("message", message);
-
-        sendSocketMessage(socketMessage);
-
-    }
-
-    private void sendSocketMessage(SocketMessage socketMessage){
 
         try {
             oos.writeObject(socketMessage);
@@ -168,6 +161,33 @@ public class NetworkService extends Service {
             e.printStackTrace();
             isConnected = false;
         }
+
+    }
+
+    private List<NetworkServiceObserver> observers = new ArrayList<NetworkServiceObserver>();
+
+    @Override
+    public void addObserver(NetworkServiceObserver observer) {
+
+        if(!observers.contains(observer))
+            observers.add(observer);
+
+    }
+
+    @Override
+    public void removeObserver(NetworkServiceObserver observer) {
+
+        if(observers.contains(observer))
+            observers.remove(observer);
+
+    }
+
+
+    @Override
+    public void notifyObservers(SocketMessage socketMessage) {
+
+        for(NetworkServiceObserver observer: observers)
+            observer.onSocketMessage(socketMessage);
 
     }
 }

@@ -38,12 +38,15 @@ import org.w3c.dom.Text;
 import java.util.ArrayList;
 import java.util.List;
 
+import ro.baltoibogdan.chat.observer.NetworkServiceObserver;
+import socketmessage.SocketMessage;
+
 import static android.Manifest.permission.READ_CONTACTS;
 
 /**
  * A login screen that offers login via email/password.
  */
-public class LoginActivity extends AppCompatActivity {
+public class LoginActivity extends AppCompatActivity implements NetworkServiceObserver {
 
     private TextView messageTextView;
     private EditText emailEditText;
@@ -61,7 +64,7 @@ public class LoginActivity extends AppCompatActivity {
 
         messageTextView = (TextView) findViewById(R.id.message);
         emailEditText = (EditText) findViewById(R.id.email);
-        passwordEditText = (EditText) findViewById(R.id.password);
+//        passwordEditText = (EditText) findViewById(R.id.password);
         signInButton = (Button) findViewById(R.id.sign_in_button);
 
         progressBar = (ProgressBar) findViewById(R.id.progress);
@@ -74,7 +77,19 @@ public class LoginActivity extends AppCompatActivity {
         super.onStart();
 
         Intent intent = new Intent(this, NetworkService.class);
+        startService(intent);
         bindService(intent, serviceConnection, Context.BIND_AUTO_CREATE);
+
+    }
+
+    @Override
+    protected void onPause() {
+        super.onPause();
+
+        networkService.removeObserver(LoginActivity.this);
+
+        unbindService(serviceConnection);
+
     }
 
     private OnClickListener signInClickListener = new OnClickListener(){
@@ -82,11 +97,13 @@ public class LoginActivity extends AppCompatActivity {
         @Override
         public void onClick(View v) {
             String email = emailEditText.getText().toString();
-            String password = passwordEditText.getText().toString();
+//            String password = passwordEditText.getText().toString();
+
+            login(email);
 
 //            progressBar.setVisibility(View.VISIBLE);
 
-            networkService.login(email, password);
+//            networkService.login(email, password);
         }
     };
 
@@ -99,16 +116,30 @@ public class LoginActivity extends AppCompatActivity {
             networkService = (NetworkService) binder.getService();
             networkServiceBound = true;
 
+            networkService.addObserver(LoginActivity.this);
+
         }
 
         @Override
         public void onServiceDisconnected(ComponentName name) {
+
+            networkService.removeObserver(LoginActivity.this);
 
             networkServiceBound = false;
 
         }
 
     };
+
+    private void login(String email){
+
+        SocketMessage socketMessage = new SocketMessage();
+        socketMessage.setRequestType(SocketMessage.REQUEST_TYPE_LOGIN);
+        socketMessage.getMap().put("email", email);
+
+        networkService.sendSocketMessage(socketMessage);
+
+    }
 
     private boolean isEmailValid(String email) {
         //TODO: Replace this with your own logic
@@ -120,5 +151,26 @@ public class LoginActivity extends AppCompatActivity {
         return password.length() > 4;
     }
 
+    @Override
+    public void onSocketMessage(SocketMessage socketMessage) {
+
+        if(socketMessage.getResponseType() != SocketMessage.RESPONSE_TYPE_LOGIN)
+            return;
+
+        String result = socketMessage.getMap().get("result");
+
+        if(result == "fail") {
+
+            String message = socketMessage.getMap().get("message");
+
+            messageTextView.setText(message);
+
+            return;
+        }
+
+        Intent intent = new Intent(this, FriendsListActivity.class);
+        startActivity(intent);
+
+    }
 }
 
