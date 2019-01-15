@@ -26,6 +26,8 @@ public class FriendsListActivity extends AppCompatActivity implements NetworkSer
     private ArrayAdapter<String> arrayAdapter;
     private List<String> stringArray = new ArrayList<String>();
 
+    private String myself;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -46,6 +48,7 @@ public class FriendsListActivity extends AppCompatActivity implements NetworkSer
 
         Intent intent = new Intent(FriendsListActivity.this, ChatActivity.class);
         intent.putExtra("email", stringArray.get(position));
+        intent.putExtra("myself", myself);
         startActivity(intent);
 
         }
@@ -56,6 +59,9 @@ public class FriendsListActivity extends AppCompatActivity implements NetworkSer
     @Override
     protected void onStart() {
         super.onStart();
+
+        Intent startIntent = getIntent();
+        myself = startIntent.getStringExtra("myself");
 
         Intent intent = new Intent(this, NetworkService.class);
         bindService(intent, serviceConnection, Context.BIND_AUTO_CREATE);
@@ -116,8 +122,11 @@ public class FriendsListActivity extends AppCompatActivity implements NetworkSer
 
         String friends [] = list.split(";");
 
+        ((ArrayList)stringArray).clear();
+
         for(String friend: friends)
-            stringArray.add(friend);
+            if(friend.length() > 0)
+                stringArray.add(friend);
 
         runOnUiThread(new Runnable() {
             @Override

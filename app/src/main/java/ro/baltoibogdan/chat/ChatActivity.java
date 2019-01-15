@@ -6,6 +6,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.ServiceConnection;
 import android.content.pm.PackageManager;
+import android.graphics.Color;
 import android.os.IBinder;
 import android.os.StrictMode;
 import android.support.v4.app.ActivityCompat;
@@ -13,6 +14,7 @@ import android.support.v4.content.ContextCompat;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.view.View;
+import android.view.ViewGroup;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
@@ -24,6 +26,7 @@ import java.util.List;
 import java.util.Map;
 
 import ro.baltoibogdan.chat.observer.NetworkServiceObserver;
+import ro.baltoibogdan.chat.pojos.MessageInfo;
 import socketmessage.SocketMessage;
 
 public class ChatActivity extends AppCompatActivity implements NetworkServiceObserver {
@@ -39,6 +42,8 @@ public class ChatActivity extends AppCompatActivity implements NetworkServiceObs
 
     private String to;
 
+    private List<MessageInfo> messagesInfos = new ArrayList<>();
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -49,7 +54,23 @@ public class ChatActivity extends AppCompatActivity implements NetworkServiceObs
 
         sendButton.setOnClickListener(sendButtonOnClickListener);
 
-        arrayAdapter = new ArrayAdapter<String>(this, android.R.layout.simple_list_item_1, stringArray);
+        arrayAdapter = new ArrayAdapter<String>(this, android.R.layout.simple_list_item_1, stringArray){
+
+            @Override
+            public View getView(int position, View convertView, ViewGroup parent) {
+                View view = super.getView(position, convertView, parent);
+
+//                MessageInfo messageInfo = messagesInfos.get(position);
+//
+//                if (messageInfo.getToFrom().equals(myself)) {
+//                    view.setBackgroundColor(Color.BLUE);
+//                } else {
+//                    view.setBackgroundColor(Color.CYAN);
+//                }
+
+                return view;
+            }
+        };
 
         ListView listView = (ListView) findViewById(R.id.messages_list);
         listView.setAdapter(arrayAdapter);
@@ -82,13 +103,17 @@ public class ChatActivity extends AppCompatActivity implements NetworkServiceObs
     };
 
     private String id;
+    private String myself;
 
     @Override
     protected void onStart() {
         super.onStart();
 
         Intent startIntent = getIntent();
+        myself = startIntent.getStringExtra("myself");
         id = startIntent.getStringExtra("email");
+
+        System.out.println(myself);
 
         Intent intent = new Intent(this, NetworkService.class);
         bindService(intent, serviceConnection, Context.BIND_AUTO_CREATE);
@@ -114,6 +139,8 @@ public class ChatActivity extends AppCompatActivity implements NetworkServiceObs
             networkService = (NetworkService) binder.getService();
             networkServiceBound = true;
 
+            networkService.addObserver(ChatActivity.this);
+
         }
 
         @Override
@@ -136,6 +163,9 @@ public class ChatActivity extends AppCompatActivity implements NetworkServiceObs
         map.put("to", id);
         map.put("message", message);
 
+        stringArray.add(message);
+        messagesInfos.add(new MessageInfo(myself, message));
+
         networkService.sendSocketMessage(socketMessage);
 
     }
@@ -143,14 +173,27 @@ public class ChatActivity extends AppCompatActivity implements NetworkServiceObs
     @Override
     public void onSocketMessage(SocketMessage socketMessage) {
 
+        System.out.println("aaaa");
+
         if(socketMessage.getResponseType() != SocketMessage.RESPONSE_TYPE_SEND_CHAT_MESSAGE)
             return;
 
         String message = socketMessage.getMap().get("message");
 
-        System.out.println(message);
+        stringArray.add(message);
+        messagesInfos.add(new MessageInfo(id, message));
 
-//        stringArray.add()
+        System.out.println("aaaaaa");
+
+        for(MessageInfo messageInfo: messagesInfos)
+            System.out.println(messageInfo.getToFrom());
+
+        runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                arrayAdapter.notifyDataSetChanged();
+            }
+        });
 
     }
 }

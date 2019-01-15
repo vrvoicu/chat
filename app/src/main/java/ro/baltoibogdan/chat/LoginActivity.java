@@ -57,6 +57,8 @@ public class LoginActivity extends AppCompatActivity implements NetworkServiceOb
     NetworkService networkService;
     boolean networkServiceBound = false;
 
+    private String myself = null;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -98,6 +100,8 @@ public class LoginActivity extends AppCompatActivity implements NetworkServiceOb
         public void onClick(View v) {
             String email = emailEditText.getText().toString();
 //            String password = passwordEditText.getText().toString();
+
+            myself = email;
 
             login(email);
 
@@ -169,6 +173,7 @@ public class LoginActivity extends AppCompatActivity implements NetworkServiceOb
         }
 
         Intent intent = new Intent(this, FriendsListActivity.class);
+        intent.putExtra("myself", myself);
         startActivity(intent);
 
     }
